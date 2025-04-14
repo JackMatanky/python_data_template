@@ -1,0 +1,254 @@
+# -----------------------------------------------------------------------------
+# File: ${PROJECT_PATH}/justfile
+# GitHub: https://github.com/casey/just
+# Docs: https://just.systems/man/en
+# Description: Task runner for project setup, Jupytext sync, linting, testing,
+#              virtual environment activation, and script execution.
+# -----------------------------------------------------------------------------
+
+# Set Bash as default shell
+set shell := ["bash", "-cu"]
+set windows-shell := ["bash", "-cu"]
+
+# -----------------------------------------------
+#  Environment Variables and Paths
+# -----------------------------------------------
+
+# OS and shell detection
+OS := os_family()
+SHELL_NAME := `basename "$SHELL"`
+TERMINAL := `ps -o comm= -p $(ps -o ppid= -p $(ps -o ppid= -p $$)) | xargs basename`
+
+# Project paths
+PROJECT_DIR := shell("pwd")
+VENV_DIR := PROJECT_DIR / ".venv"
+DATA_DIR := PROJECT_DIR / "data"
+NOTEBOOK_DIR := PROJECT_DIR / "python_notebooks"
+SCRIPT_DIR := PROJECT_DIR / "python_scripts"
+SRC_DIR := PROJECT_DIR / "src"
+
+# Python virtual environment configuration
+PYTHON_DIR := join(".venv", if OS == "windows" { "Scripts" } else { "bin" })
+PYTHON := join(PYTHON_DIR, if OS == "windows" { "python.exe" } else { "python3" })
+VENV_ACTIVATE_PATH := if TERMINAL == "nu" {
+    join(PYTHON_DIR, "activate.nu")
+} else if TERMINAL == "fish" {
+    join(PYTHON_DIR, "activate.fish")
+} else {
+    join(PYTHON_DIR, "activate")
+}
+VENV_ACTIVATE_COMMAND := if TERMINAL == "nu" {
+    "use " + VENV_ACTIVATE_PATH
+} else {
+    "source " + VENV_ACTIVATE_PATH
+}
+
+# Jupytext pairing format
+JUPYTEXT_FORMAT := "--set-formats ipynb,../python_scripts//py:percent"
+
+# -----------------------------------------------
+#  Default Task
+# -----------------------------------------------
+
+# Display a list of available tasks
+default:
+    @echo "📋 Available tasks:"
+    @just --list --summary
+
+# -----------------------------------------------
+#  Environment Detection Utilities
+# -----------------------------------------------
+
+# Show the process tree of the current terminal
+[group("Environment Utils")]
+show-terminal-tree:
+    pid=$$; \
+    level=0; \
+    while [ "$$pid" -gt 1 ]; do \
+    name=$$(ps -o comm= -p "$$pid" | xargs basename); \
+    printf "Level %d: %s (pid: %s)\n" "$$level" "$$name" "$$pid"; \
+    pid=$$(ps -o ppid= -p "$$pid" | tr -d ' '); \
+    level=$$((level + 1)); \
+    done
+
+# Print the detected terminal emulator
+[group("Environment Utils")]
+detect-terminal:
+    @echo "Detected terminal emulator: {{ TERMINAL }}"
+
+# Print the detected shell
+[group("Environment Utils")]
+detect-shell:
+    @echo "Detected shell: {{ SHELL_NAME }}"
+
+# -----------------------------------------------
+#  Virtual Environment Management
+# -----------------------------------------------
+
+# Create a Python virtual environment if it doesn't exist
+[group("Virtual Environment")]
+venv:
+    [ -d .venv ] || uv venv
+
+# Print the activation path for the current shell
+[group("Virtual Environment")]
+activate-path:
+    @echo "{{ VENV_ACTIVATE_PATH }}"
+
+# Copy the virtual environment activation command to the clipboard
+[group("Virtual Environment")]
+activate:
+    @echo "{{ VENV_ACTIVATE_COMMAND }}"
+    @if [ "{{ OS }}" == "unix" ]; then \
+        echo "{{ VENV_ACTIVATE_COMMAND }}" | pbcopy; \
+    else \
+        echo "{{ VENV_ACTIVATE_COMMAND }}" | clip; \
+    fi
+    @echo "✅ Activation command copied to clipboard (if supported)"
+    @echo "📋 Paste the command in your shell (Ctrl+V or right-click)"
+
+# -----------------------------------------------
+#  Project Setup
+# -----------------------------------------------
+
+# Install project dependencies using uv
+[group("Setup")]
+setup-tools:
+    uv pip install -e .
+    uv pip install -r pyproject.toml
+
+# Install pre-commit if not present and enable Git hook
+[group("Setup")]
+setup-pre-commit:
+    command -v pre-commit >/dev/null || uv pip install pre-commit
+    pre-commit install
+
+# Initialize the environment: venv, tools, and hooks
+[group("Setup")]
+init:
+    just venv
+    just setup-tools
+    just setup-pre-commit
+    @echo "✅ Virtual environment created and dependencies installed."
+
+# -----------------------------------------------
+#  Code Quality and Linting
+# -----------------------------------------------
+
+# Run Ruff linter over source and notebook code
+[group("Code Quality")]
+lint:
+    ruff check src notebooks
+
+# Format code using Ruff's auto-fixer
+[group("Code Quality")]
+format:
+    ruff format src notebooks
+
+# Run both linting and formatting steps
+[group("Code Quality")]
+check:
+    just lint
+    just format
+
+# Run all configured pre-commit hooks manually
+[group("Code Quality")]
+run-pre-commit:
+    pre-commit run --all-files
+
+# -----------------------------------------------
+#  Jupytext Integration
+# -----------------------------------------------
+
+# Pair .ipynb notebooks with .py scripts
+[group("Jupytext")]
+nb_pair:
+    jupytext {{ JUPYTEXT_FORMAT }} {{ NOTEBOOK_DIR }}/*.ipynb
+
+# Sync notebooks to scripts recursively
+[group("Jupytext")]
+nb-sync:
+    /opt/homebrew/bin/bash -c 'shopt -s globstar && jupytext --sync {{ JUPYTEXT_FORMAT }} {{ NOTEBOOK_DIR }}/**/*.ipynb'
+
+# Sync scripts back to notebooks recursively
+[group("Jupytext")]
+nb-sync-py:
+    /opt/homebrew/bin/bash -c 'shopt -s globstar && jupytext --sync {{ JUPYTEXT_FORMAT }} ../python_scripts/**/*.py'
+
+# Launch Jupyter Notebook interface in the notebook directory
+[group("Jupytext")]
+notebook:
+    jupyter notebook {{ NOTEBOOK_DIR }}/
+
+# Export notebooks to HTML format
+[group("Jupytext")]
+nb-export-html:
+    jupyter nbconvert --to html {{ NOTEBOOK_DIR }}/*.ipynb
+
+# Export notebooks to Markdown format
+[group("Jupytext")]
+nb-export-md:
+    jupyter nbconvert --to markdown {{ NOTEBOOK_DIR }}/*.ipynb
+
+# -----------------------------------------------
+#  Script Execution
+# -----------------------------------------------
+
+# Run the main application script
+[group("Execution")]
+run:
+    {{ PYTHON }} src/main.py
+
+# Run the command-line interface script
+[group("Execution")]
+cli:
+    {{ PYTHON }} src/cli.py
+
+# Run the data processing pipeline script
+[group("Execution")]
+data-pipeline:
+    {{ PYTHON }} scripts/process_data.py
+
+# -----------------------------------------------
+#  Testing
+# -----------------------------------------------
+
+# Run all tests using pytest
+[group("Testing")]
+test:
+    pytest tests
+
+# Run tests and display a coverage report
+[group("Testing")]
+coverage:
+    coverage run -m pytest
+    coverage report
+
+# -----------------------------------------------
+# Cleanup and Maintenance
+# -----------------------------------------------
+
+# Remove venv and all common Python cache files
+[group("Maintenance")]
+clean:
+    rm -rf .venv __pycache__ .ruff_cache .pytest_cache
+
+# Rebuild environment from scratch
+[group("Maintenance")]
+rebuild:
+    just clean
+    just init
+
+# Display environment info and Python paths
+[group("Maintenance")]
+check-env:
+    {{ PYTHON }} --version
+    which {{ PYTHON }}
+    echo "Venv Path: {{ PYTHON_DIR }}"
+    echo "Activate Path: {{ VENV_ACTIVATE_PATH }}"
+
+# Purge all caches and environment artifacts
+[group("Maintenance")]
+purge:
+    just clean
+    rm -rf .mypy_cache .ipynb_checkpoints .pytest_cache .ruff_cache

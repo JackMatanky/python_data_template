@@ -1,0 +1,163 @@
+# -----------------------------------------------------------------------------
+# File: ${PROJECT_PATH}/pyproject.toml
+# Description: Project metadata and dependencies (PEP 621 format)
+# Reference: https://peps.python.org/pep-0621/
+# Specifications: https://packaging.python.org/en/latest/specifications/pyproject-toml/
+# -----------------------------------------------------------------------------
+
+# >>> Project Metadata <<<
+[project]
+name = "${PROJECT_NAME}"
+description = "${DESCRIPTION}"
+authors = [{ name = "${AUTHOR_NAME}", email = "<your@email.com>" }]
+version — "0.1.0"
+requires-python = ">=${PYTHON_VERSION}"
+
+# >>> Runtime Dependencies <<<
+# Libraries and packages needed to run the project
+# Installed via `uv pip install`
+dependencies = [
+    "pre-commit>=4.2.0",
+    "ruff>=0.11.4",
+    "ipykernel>=6.29.5",
+    "jupytext>=1.17.0",
+    "pathlib>=1.0.1",
+    "requests",
+
+    "pandas",
+    "numpy",
+    "matplotlib",
+    ${DS_DEPENDENCIES}
+]
+
+# >>> Package Layout <<<
+# Define the source code location for the project (standard layout)
+# This tells setuptools to look for code in the src/ directory.
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+# >>> Build Backend Configuration <<<
+# Specify the backend used to build the project, here we use setuptools
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# Optional: tool-specific dependencies from GitHub or local paths
+# [tool.dependencies]
+# github = ["user/repo@branch"]
+# local = ["../path/to/local_package"]
+
+
+# ---------------------------------------------------------
+# Description: Configuration for Jupytext notebook pairing
+# JupyText Docs: https://jupytext.readthedocs.io/
+# ---------------------------------------------------------
+[tool.jupytext]
+# >>> Notebook Format Pairing <<<
+# Define how Jupytext should pair notebooks with Python scripts.
+# This will pair .ipynb notebooks with .py scripts, using the percent format for cell markers.
+# default_jupytext_formats = "ipynb,py:percent"
+
+# Limit notebook pairing to files with the .ipynb extension
+notebook_extensions = [".ipynb"]
+
+# >>> Notebook and Cell Metadata <<<
+# Exclude unnecessary metadata like widget state and VSCode settings from notebooks
+notebook_metadata_filter = "-all"
+
+# Keep all cell-level metadata, including tags and parameters used in Jupyter notebooks
+cell_metadata_filter = "all"
+
+# >>> Jupyter Notebook Settings <<<
+# Read from .ipynb files by default and use Jupytext to convert them to Python
+preferred_jupytext_formats_read = "ipynb"
+
+# >>> Jupyter Notebook Formats <<<
+# Define the formats for Jupyter notebooks and Python scripts
+[tool.jupytext.formats]
+"python_notebooks/" = "ipynb"
+"python_scripts/" = "py:percent"
+
+
+# ---------------------------------------------------------
+# Description: Configuration for Ruff Linter & Formatter
+# Docs: https://docs.astral.sh/ruff/
+# ---------------------------------------------------------
+[tool.ruff]
+# >>> Max Line Length <<<
+line-length = 88
+
+# >>> Target Python Version <<<
+# Specify the target Python version for parsing the code
+target-version = "py310"
+
+# >>> Enable Linting and Formatting <<<
+# Enable multiple rule sets for code quality checks
+# E = PyCodeStyle, F = PyFlakes, I = Import sorting, B = formatting, UP = unused imports
+lint.select = ["E", "F", "I", "B", "UP"]
+
+# >>> Rules to Ignore <<<
+# List of linting rules to ignore
+lint.ignore = []
+
+# >>> Auto-Fix Issues <<<
+# Automatically fix linting issues
+# e.g., fixing code formatting or imports
+fix = true
+
+# >>> Exclude Folders from Linting <<<
+# List of directories and files to exclude from linting
+# e.g., virtual environments, data files, models, notebooks, and reports
+exclude = [
+    "data/",
+    "models/",
+    "notebooks/",
+    "reports/",
+    ".venv/",
+    "__pycache__/",
+]
+
+# >>> Import Sorting <<<
+[tool.ruff.lint.isort]
+# Mark "src" as a first-party package for import sorting
+known-first-party = ["src"]
+combine-as-imports = true
+force-sort-within-sections = true
+
+# ---------------------------------------------------------
+# Description: Static type checker for Python
+# Docs: https://mypy.readthedocs.io/en/stable/index.html
+# ---------------------------------------------------------
+[tool.mypy]
+# Set the Python version explicitly (matches your project)
+python_version = "3.12"
+
+# Tell mypy where your actual code lives (src layout)
+mypy_path = "src"
+
+# Restrict type checking to source and test directories
+files = ["src", "tests"]
+
+# Enable useful safety checks
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+strict_optional = true
+
+# Allow unknown imports to error unless overridden
+ignore_missing_imports = false
+
+# Ignore typical transient/generated artifacts or notebook junk
+exclude = [
+    '^src/__pycache__',
+    '^python_notebooks/',
+    '^.*_old.*\\.py',
+]
+
+# Optional: You can loosen type rules for specific modules here
+# Example:
+# [[tool.mypy.overrides]]
+# module = "tests.*"
+# disallow_untyped_defs = false

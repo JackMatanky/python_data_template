@@ -1,0 +1,61 @@
+# -----------------------------------------------------------------------------
+# File: ${PROJECT_PATH}/.gitignore
+# Description: Prevents Git from tracking system, environment, editor,
+#              and cache files
+# -----------------------------------------------------------------------------
+
+# >>> Python Cache and Bytecode <<<
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# >>> Jupyter and IPython <<<
+*.ipynb
+*.ipynb_checkpoints/
+.ipython/
+.jupyter/
+
+# >>> Build Artifacts <<<
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+wheels/
+
+# >>> Dependency Managers and Virtual Environments <<<
+.venv/
+.venv.bak/
+.env/
+.envrc
+# Pipenv (optional, depending on use)
+# Pipfile.lock
+
+# >>> Tool-Specific Caches and Metadata <<<
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.dmypy.json
+.pyre/
+.pytype/
+.ropeproject/
+.cache/
+
+# >>> Editor and IDE Configurations <<<
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# >>> OS and System-Level Files <<<
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*.bak
+*.tmp

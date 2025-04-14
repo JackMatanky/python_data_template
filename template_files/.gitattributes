@@ -1,0 +1,37 @@
+# -----------------------------------------------------------------------------
+# File: ${PROJECT_PATH}/.gitattributes
+# Description: Defines Git behavior for diffing, merging, and cross-platform
+#              compatibility
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------
+# Jupyter Notebooks
+# NOTE: Use JupyText diffing when not ignored
+# -----------------------------------------------
+*.ipynb diff=jupytext
+*.ipynb linguist-documentation
+
+# -----------------------------------------------
+# Line Endings and Text Normalization
+# NOTE: Ensures cross-platform consistency
+# -----------------------------------------------
+* text=auto eol=lf
+
+# -----------------------------------------------
+# Dependency Lockfiles
+# NOTE: Helps reduce merge conflicts
+# -----------------------------------------------
+poetry.lock merge=union
+uv.lock merge=union
+
+# -----------------------------------------------
+# Binary and Non-Diffable Files
+# -----------------------------------------------
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.whl binary
