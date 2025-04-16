@@ -52,6 +52,7 @@ htmlcov/
 *.sublime-workspace
 
 # >>> OS and System-Level Files <<<
+__MACOSX/
 .DS_Store
 Thumbs.db
 ehthumbs.db
