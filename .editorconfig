@@ -1,0 +1,84 @@
+# -----------------------------------------------------------------------------
+# Filename: ~/dotfiles/.editorconfig
+# Docs: https://editorconfig.org
+# Spec: https://spec.editorconfig.org/
+# Description: General formatting rules for configuration and documentation
+#              files. Designed for cross-platform (Unix + Windows) compatibility.
+# -----------------------------------------------------------------------------
+
+root = true
+
+# -----------------------------------------------
+# Default Settings
+# -----------------------------------------------
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# -----------------------------------------------
+# Python and Jupyter Notebooks (.py, .ipynb)
+# -----------------------------------------------
+[*.{py,ipynb}]
+indent_size = 4
+
+# -----------------------------------------------
+# Markdown
+# -----------------------------------------------
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# -----------------------------------------------
+# Shell Scripts
+# -----------------------------------------------
+[*.sh]
+indent_size = 4
+
+# -----------------------------------------------
+# Nushell
+# -----------------------------------------------
+[*.nu]
+indent_size = 2
+
+# -----------------------------------------------
+# JSON and JSONC
+# -----------------------------------------------
+[*.{json,jsonc}]
+indent_size = 2
+
+# -----------------------------------------------
+# YAML
+# -----------------------------------------------
+[*.yml]
+indent_size = 2
+
+[*.yaml]
+indent_size = 2
+
+# -----------------------------------------------
+# TOML
+# -----------------------------------------------
+[*.toml]
+indent_size = 2
+
+# -----------------------------------------------
+# Justfile
+# -----------------------------------------------
+[justfile]
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# -----------------------------------------------
+# Specific settings: Git configuration files
+# -----------------------------------------------
+[*.gitignore]
+trim_trailing_whitespace = false
+
+[*.gitattributes]
+trim_trailing_whitespace = false
