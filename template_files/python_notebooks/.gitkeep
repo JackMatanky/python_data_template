@@ -1,4 +1,0 @@
-# -----------------------------------------------------------------------------
-# File: ${PROJECT_PATH}/notebooks/.gitkeep
-# Description: Keeps the notebooks directory tracked in Git even if empty
-# -----------------------------------------------------------------------------

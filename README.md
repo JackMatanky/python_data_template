@@ -1,6 +1,6 @@
-# {{ cookiecutter.project_name }}
+# {{ PROJECT_NAME }}
 
-{{ cookiecutter.description }}
+{{ description }}
 
 ## Project Overview
 
@@ -11,6 +11,8 @@ This project is structured to support one of three types of workflows:
 - `ad_hoc`: Lightweight, flexible workspaces for quick exploration
 
 ## Directory Structure
+
+For `src` layout vs. flat layout tradeoff, see the [Python Packaging User Guide](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/)
 
 ### Data Science
 

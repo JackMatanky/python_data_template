@@ -30,23 +30,41 @@ dependencies = [
     ${DS_DEPENDENCIES}
 ]
 
-# >>> Package Layout <<<
-# Define the source code location for the project (standard layout)
-# This tells setuptools to look for code in the src/ directory.
+# --- Dependency Groups ---
+# Mechanism for storing package requirements excluded from the main build metadata
+# Source: https://packaging.python.org/en/latest/specifications/dependency-groups/
+# Unavailable when using setuptools
+# See: https://setuptools.pypa.io/en/latest/userguide/dependency_management.html
+# [dependency-groups]
+# docs = ["graphviz>=0.20.3", "erdantic>=1.1.0.post1"]
+
+# --- Optional Dependencies ---
+# Source: https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#dependencies-and-requirements
+[project.optional-dependencies]
+docs = ["graphviz>=0.20.3", "erdantic>=1.1.0.post1"]
+
+# >>> Setuptools Backend Options <<<
+# Source: https://setuptools.pypa.io/en/latest/userguide/package_discovery.html
+# (Optional) Top-level setuptools configuration.
+# Uncomment only if you need settings like `zip-safe` or legacy behavior.
+# [tool.setuptools]
+# zip-safe = false
+
+# --- Package Directory Mapping ---
+# Maps the root namespace to the `src/` directory (required for src layout).
+[tool.setuptools.package-dir]
+"" = "src"
+
+# --- Package Discovery Settings ---
+# Tells setuptools to search for packages inside the `src/` directory.
 [tool.setuptools.packages.find]
 where = ["src"]
 
-
-# >>> Build Backend Configuration <<<
-# Specify the backend used to build the project, here we use setuptools
+# >>> Build Backend <<<
+# Specify the backend used to build the project
 [build-system]
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
-
-# Optional: tool-specific dependencies from GitHub or local paths
-# [tool.dependencies]
-# github = ["user/repo@branch"]
-# local = ["../path/to/local_package"]
 
 
 # ---------------------------------------------------------
@@ -57,14 +75,14 @@ build-backend = "setuptools.build_meta"
 # >>> Notebook Format Pairing <<<
 # Define how Jupytext should pair notebooks with Python scripts.
 # This will pair .ipynb notebooks with .py scripts, using the percent format for cell markers.
-# default_jupytext_formats = "ipynb,py:percent"
+formats = "ipynb,py:percent"
 
 # Limit notebook pairing to files with the .ipynb extension
 notebook_extensions = [".ipynb"]
 
 # >>> Notebook and Cell Metadata <<<
 # Exclude unnecessary metadata like widget state and VSCode settings from notebooks
-notebook_metadata_filter = "-all"
+notebook_metadata_filter = "kernelspec,jupytext"
 
 # Keep all cell-level metadata, including tags and parameters used in Jupyter notebooks
 cell_metadata_filter = "all"
@@ -76,8 +94,8 @@ preferred_jupytext_formats_read = "ipynb"
 # >>> Jupyter Notebook Formats <<<
 # Define the formats for Jupyter notebooks and Python scripts
 [tool.jupytext.formats]
-"python_notebooks/" = "ipynb"
-"python_scripts/" = "py:percent"
+"notebooks/" = "ipynb"
+"_scripts/" = "py:percent"
 
 
 # ---------------------------------------------------------
@@ -86,7 +104,7 @@ preferred_jupytext_formats_read = "ipynb"
 # ---------------------------------------------------------
 [tool.ruff]
 # >>> Max Line Length <<<
-line-length = 88
+line-length = 80
 
 # >>> Target Python Version <<<
 # Specify the target Python version for parsing the code
@@ -125,39 +143,68 @@ known-first-party = ["src"]
 combine-as-imports = true
 force-sort-within-sections = true
 
+
 # ---------------------------------------------------------
-# Description: Static type checker for Python
-# Docs: https://mypy.readthedocs.io/en/stable/index.html
+# Pydoc-Markdown
+# https://pydoc-markdown.readthedocs.io/en/latest/config/
 # ---------------------------------------------------------
-[tool.mypy]
-# Set the Python version explicitly (matches your project)
-python_version = "3.12"
-
-# Tell mypy where your actual code lives (src layout)
-mypy_path = "src"
-
-# Restrict type checking to source and test directories
-files = ["src", "tests"]
-
-# Enable useful safety checks
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-check_untyped_defs = true
-strict_optional = true
-
-# Allow unknown imports to error unless overridden
-ignore_missing_imports = false
-
-# Ignore typical transient/generated artifacts or notebook junk
-exclude = [
-    '^src/__pycache__',
-    '^python_notebooks/',
-    '^.*_old.*\\.py',
+[tool.pydoc-markdown]
+# The Python modules you want to load from your source directory
+loaders = [
+  { type = "python", search_path = ["src"] }
 ]
 
-# Optional: You can loosen type rules for specific modules here
-# Example:
-# [[tool.mypy.overrides]]
-# module = "tests.*"
-# disallow_untyped_defs = false
+[tool.pydoc-markdown.renderer]
+type = "mkdocs"
+output_directory = "docs"
+
+[[tool.pydoc-markdown.renderer.pages]]
+title = "API Documentation"
+name = "index"
+contents = ["geo_entities", "shared", "geo_utils", "person_entities"]
+
+
+# ---------------------------------------------------------
+# Pylyzer - Standalone Static Type Checker
+# https://mtshiba.github.io/pylyzer/
+# ---------------------------------------------------------
+[tool.pylyzer.python]
+path = ".venv/bin/python"  # Set to your virtualenv Python interpreter
+
+# ---------------------------------------------------------
+# BasedPyright LSP
+# https://github.com/Insertish/basedpyright
+# ---------------------------------------------------------
+[tool.basedpyright]
+# >>> Environment Options <<<
+include = ["src"]
+exclude = ["**/__pycache__", "src/experimental", "src/typestubs"]
+
+venvPath = "."
+venv = ".venv"
+
+pythonVersion = "3.12"
+# Specifies the target platform for code execution
+# pythonPlatform = "Darwin"
+
+executionEnvironments = [
+  { root = "src" }
+]
+
+# >>> Type Checking Diagnostics <<<
+ignore = ["src/_old"]
+
+defineConstant = { DEBUG = true }
+# stubPath = "src/stubs"
+
+# >>> Type Checking Diagnostics <<<
+# Suppress overzealous or irrelevant warnings for data workflows
+reportAttributeAccessIssue = false       # Allow accessing df.itertuples().field
+reportUnknownMemberType = false          # Suppress unknown attributes from libs like pandas
+reportUnknownVariableType = false        # Suppress "partially unknown" variable warnings
+reportUnknownLambdaType = false          # Suppress "lambda return is unknown"
+reportUnnecessaryIsInstance = false      # Allow redundant isinstance checks
+reportPrivateImportUsage = false         # Allow accessing 'internal' imports when needed
+reportMissingImports = "error"           # Still show errors for missing actual libraries
+reportMissingTypeStubs = false           # Allow using libs without stubs (e.g., geopandas)
+reportIgnoreCommentWithoutRule = false   # Suppress warnings for @ignore comments without a rule
