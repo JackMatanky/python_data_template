@@ -1,22 +1,22 @@
 # -----------------------------------------------------------------------------
-# File: ${PROJECT_PATH}/.gitignore
+# Filename: ${PROJECT_PATH}/.gitignore
 # Description: Prevents Git from tracking system, environment, editor,
 #              and cache files
 # -----------------------------------------------------------------------------
 
-# >>> Python Cache and Bytecode <<<
+# ----------------- Python Cache And Bytecode ---------------- #
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 
-# >>> Jupyter and IPython <<<
+# -------------------- Jupyter And IPython ------------------- #
 *.ipynb
 *.ipynb_checkpoints/
 .ipython/
 .jupyter/
 
-# >>> Build Artifacts <<<
+# ---------------------- Build Artifacts --------------------- #
 build/
 dist/
 .eggs/
@@ -24,15 +24,13 @@ dist/
 *.egg
 wheels/
 
-# >>> Dependency Managers and Virtual Environments <<<
+# ------- Dependency Managers And Virtual Environments ------- #
 .venv/
 .venv.bak/
 .env/
 .envrc
-# Pipenv (optional, depending on use)
-# Pipfile.lock
 
-# >>> Tool-Specific Caches and Metadata <<<
+# ------------- Tool-Specific Caches And Metadata ------------ #
 .mypy_cache/
 .pytest_cache/
 .coverage
@@ -45,13 +43,13 @@ htmlcov/
 .ropeproject/
 .cache/
 
-# >>> Editor and IDE Configurations <<<
+# --------------- Editor And IDE Configurations -------------- #
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 
-# >>> OS and System-Level Files <<<
+# ----------------- OS And System-Level Files ---------------- #
 __MACOSX/
 .DS_Store
 Thumbs.db
@@ -60,3 +58,21 @@ Desktop.ini
 *.swp
 *.bak
 *.tmp
+
+# ------------- Project-Specific Persistent Cache ------------ #
+# data/cache/**/*.parquet            # Ignore all Parquet by default
+data/cache/**/*.feather            # Ignore session Feather files
+data/cache/**/*.pkl                # Ignore Python pickles (not portable)
+data/cache/**/temp_*               # Ignore temporary cache files
+
+# ------------ Unignore Final Committed Snapshots ------------ #
+!data/cache/
+!data/cache/dictionaries/
+!data/cache/dictionaries/*.parquet
+
+# ------------------- CSV And GIS Datasets ------------------- #
+# Ignored unless committed on purpose
+data/**/*_raw.csv
+data/**/*.geojson
+data/**/*.gpkg
+data/**/*.gdb

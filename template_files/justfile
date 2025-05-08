@@ -5,59 +5,50 @@
 # Description: Task runner for project setup, Jupytext sync, linting, testing,
 #              virtual environment activation, and script execution.
 # -----------------------------------------------------------------------------
+# Set Bash as default shell and Powershell for Windows
 
-# Set Bash as default shell
 set shell := ["bash", "-cu"]
-set windows-shell := ["bash", "-cu"]
+set windows-shell := ["powershell", "-Command"]
 
-# -----------------------------------------------
-#  Environment Variables and Paths
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                Environment Variables And Paths               #
+# ------------------------------------------------------------ #
+# ------------------ OS and Shell Detection ------------------ #
 
-# OS and shell detection
 OS := os_family()
-SHELL_NAME := `basename "$SHELL"`
-TERMINAL := `ps -o comm= -p $(ps -o ppid= -p $(ps -o ppid= -p $$)) | xargs basename`
+SHELL_NAME := if OS == "windows" { "powershell" } else { `basename "$SHELL"` }
+TERMINAL := if OS == "windows" { "powershell" } else { `ps -o comm= -p $(ps -o ppid= -p $(ps -o ppid= -p $$)) | xargs basename` }
 
-# Project paths
-PROJECT_DIR := shell("pwd")
+# ----------------------- Project Paths ---------------------- #
+
+PROJECT_DIR := invocation_directory()
 VENV_DIR := PROJECT_DIR / ".venv"
 DATA_DIR := PROJECT_DIR / "data"
-NOTEBOOK_DIR := PROJECT_DIR / "python_notebooks"
-SCRIPT_DIR := PROJECT_DIR / "python_scripts"
 SRC_DIR := PROJECT_DIR / "src"
+DOCS_DIR := PROJECT_DIR / "docs"
+DOCS_SCRIPTS_DIR := DOCS_DIR / "scripts"
+NOTEBOOK_DIR := PROJECT_DIR / "notebooks"
+IPYNB_PATH := join(NOTEBOOK_DIR, "**/*.ipynb")
 
-# Python virtual environment configuration
+# --------- Python Virtual Environment Configuration --------- #
+
 PYTHON_DIR := join(".venv", if OS == "windows" { "Scripts" } else { "bin" })
 PYTHON := join(PYTHON_DIR, if OS == "windows" { "python.exe" } else { "python3" })
-VENV_ACTIVATE_PATH := if TERMINAL == "nu" {
-    join(PYTHON_DIR, "activate.nu")
-} else if TERMINAL == "fish" {
-    join(PYTHON_DIR, "activate.fish")
-} else {
-    join(PYTHON_DIR, "activate")
-}
-VENV_ACTIVATE_COMMAND := if TERMINAL == "nu" {
-    "use " + VENV_ACTIVATE_PATH
-} else {
-    "source " + VENV_ACTIVATE_PATH
-}
+VENV_ACTIVATE_PATH := if TERMINAL == "nu" { join(PYTHON_DIR, "activate.nu") } else if TERMINAL == "fish" { join(PYTHON_DIR, "activate.fish") } else { join(PYTHON_DIR, "activate") }
+VENV_ACTIVATE_COMMAND := if TERMINAL == "nu" { "use " + VENV_ACTIVATE_PATH } else { "source " + VENV_ACTIVATE_PATH }
 
-# Jupytext pairing format
-JUPYTEXT_FORMAT := "--set-formats ipynb,../python_scripts//py:percent"
-
-# -----------------------------------------------
-#  Default Task
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                         Default Task                         #
+# ------------------------------------------------------------ #
 
 # Display a list of available tasks
 default:
     @echo "📋 Available tasks:"
-    @just --list --summary
+    @just --list --unsorted
 
-# -----------------------------------------------
-#  Environment Detection Utilities
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                Environment Detection Utilities               #
+# ------------------------------------------------------------ #
 
 # Show the process tree of the current terminal
 [group("Environment Utils")]
@@ -81,14 +72,20 @@ detect-terminal:
 detect-shell:
     @echo "Detected shell: {{ SHELL_NAME }}"
 
-# -----------------------------------------------
-#  Virtual Environment Management
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                Virtual Environment Management                #
+# ------------------------------------------------------------ #
+
+# Create a Python virtual environment using pyenv + uv
+[group("Virtual Environment")]
+create_venv:
+    @echo "🐍 Creating .venv with pyenv + uv..."
+    @uv venv --python "$(pyenv which python)"
 
 # Create a Python virtual environment if it doesn't exist
 [group("Virtual Environment")]
 venv:
-    [ -d .venv ] || uv venv
+    [ -d .venv ] || just create_venv
 
 # Print the activation path for the current shell
 [group("Virtual Environment")]
@@ -107,43 +104,82 @@ activate:
     @echo "✅ Activation command copied to clipboard (if supported)"
     @echo "📋 Paste the command in your shell (Ctrl+V or right-click)"
 
-# -----------------------------------------------
-#  Project Setup
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                         Project Setup                        #
+# ------------------------------------------------------------ #
 
-# Install project dependencies using uv
+# Installs only the core dependencies from pyproject.toml in editable mode
 [group("Setup")]
-setup-tools:
+setup-core:
     uv pip install -e .
-    uv pip install -r pyproject.toml
 
-# Install pre-commit if not present and enable Git hook
+# Installs the optional dev dependencies (e.g., linters, type checkers, test tools)
+[group("Setup")]
+setup-dev:
+    uv pip install -e .[dev]
+
+# Installs the optional docs dependencies (e.g., graphviz, erdantic)
+[group("Setup")]
+setup-docs:
+    uv pip install -e .[docs]
+
+# Installs all optional dependency groups (dev + docs)
+[group("Setup")]
+setup-all:
+    uv pip install -e .[dev,docs]
+
+# Installs pre-commit if not available and sets up Git hooks
 [group("Setup")]
 setup-pre-commit:
     command -v pre-commit >/dev/null || uv pip install pre-commit
     pre-commit install
 
+# Full environment setup: installs all dependencies and sets up Git hooks
+
 # Initialize the environment: venv, tools, and hooks
 [group("Setup")]
 init:
     just venv
-    just setup-tools
+    just setup-all
     just setup-pre-commit
-    @echo "✅ Virtual environment created and dependencies installed."
+    @echo "✅ Virtual environment initialized with dependencies and Git hooks."
 
-# -----------------------------------------------
-#  Code Quality and Linting
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                          Tool Checks                         #
+# ------------------------------------------------------------ #
+
+# Check if Ruff is installed
+[group("Tool Checks")]
+check-ruff:
+    command -v ruff >/dev/null || (echo "❌ Ruff not found. Run 'just install-ruff' to fix." && exit 1)
+
+# Banner for Ruff installation failure
+[group("Tool Checks")]
+install_ruff_fail_banner:
+    echo "❌ Failed to install Ruff via pyproject.toml requirements."
+    echo "👉 Install Ruff manually with one of the following:"
+    echo "Homebrew: brew install ruff"
+    echo "uv: uv pip install ruff --dev"
+
+# Try to install Ruff if missing, otherwise guide user
+[group("Tool Checks")]
+install-ruff:
+    @echo "🚀 Attempting to install Ruff from pyproject.toml..."
+    just setup-dev || just install_ruff_fail_banner
+
+# ------------------------------------------------------------ #
+#                   Code Quality And Linting                   #
+# ------------------------------------------------------------ #
 
 # Run Ruff linter over source and notebook code
 [group("Code Quality")]
 lint:
-    ruff check src notebooks
+    ruff check src tests notebooks
 
 # Format code using Ruff's auto-fixer
 [group("Code Quality")]
 format:
-    ruff format src notebooks
+    ruff format src tests notebooks
 
 # Run both linting and formatting steps
 [group("Code Quality")]
@@ -156,24 +192,73 @@ check:
 run-pre-commit:
     pre-commit run --all-files
 
-# -----------------------------------------------
-#  Jupytext Integration
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                            Testing                           #
+# ------------------------------------------------------------ #
+
+# Run all tests using pytest
+[group("Testing")]
+test:
+    pytest tests
+
+# Run tests and display a coverage report
+[group("Testing")]
+coverage:
+    coverage run -m pytest
+    coverage report
+    coverage html
+
+# ------------------------------------------------------------ #
+#                         Type Checking                        #
+# ------------------------------------------------------------ #
+
+# Type-check using BasedPyright
+[group("Type Checking")]
+typecheck-basedpyright:
+    basedpyright
+
+# Type-check using Pylyzer
+[group("Type Checking")]
+typecheck-pylyzer:
+    pylyzer src
+
+# ------------------------------------------------------------ #
+#                     Jupytext Integration                     #
+# ------------------------------------------------------------ #
+# Jupytext pairing format
+
+JUPYTEXT_FORMAT := "--set-formats ipynb,/_scripts//py:percent"
 
 # Pair .ipynb notebooks with .py scripts
 [group("Jupytext")]
-nb_pair:
-    jupytext {{ JUPYTEXT_FORMAT }} {{ NOTEBOOK_DIR }}/*.ipynb
+nb-pair:
+    jupytext {{ JUPYTEXT_FORMAT }} {{ IPYNB_PATH }}
 
 # Sync notebooks to scripts recursively
 [group("Jupytext")]
+[unix]
 nb-sync:
-    /opt/homebrew/bin/bash -c 'shopt -s globstar && jupytext --sync {{ JUPYTEXT_FORMAT }} {{ NOTEBOOK_DIR }}/**/*.ipynb'
+    jupytext --sync {{ IPYNB_PATH }}
+
+#    /opt/homebrew/bin/bash -c 'shopt -s globstar && jupytext --sync {{ JUPYTEXT_FORMAT }} {{ NOTEBOOK_DIR }}/**/*.ipynb'
 
 # Sync scripts back to notebooks recursively
 [group("Jupytext")]
+[unix]
 nb-sync-py:
-    /opt/homebrew/bin/bash -c 'shopt -s globstar && jupytext --sync {{ JUPYTEXT_FORMAT }} ../python_scripts/**/*.py'
+    /opt/homebrew/bin/bash -c 'shopt -s globstar && jupytext --sync {{ JUPYTEXT_FORMAT }} ../_scripts/**/*.py'
+
+# Sync notebooks to scripts recursively
+[group("Jupytext")]
+[windows]
+nb-sync:
+    powershell -Command "Get-ChildItem -Recurse -Filter *.ipynb -Path '{{ NOTEBOOK_DIR }}' | ForEach-Object { jupytext --sync {{ JUPYTEXT_FORMAT }} $_.FullName }"
+
+# Sync scripts back to notebooks recursively
+[group("Jupytext")]
+[windows]
+nb-sync-py:
+    powershell -Command "Get-ChildItem -Recurse -Filter *.py -Path '../_scripts' | ForEach-Object { jupytext --sync {{ JUPYTEXT_FORMAT }} $_.FullName }"
 
 # Launch Jupyter Notebook interface in the notebook directory
 [group("Jupytext")]
@@ -190,9 +275,47 @@ nb-export-html:
 nb-export-md:
     jupyter nbconvert --to markdown {{ NOTEBOOK_DIR }}/*.ipynb
 
-# -----------------------------------------------
-#  Script Execution
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                         Documentation                        #
+# ------------------------------------------------------------ #
+
+# Generate entity-relationship diagrams (ERDs) from all Pydantic models
+[group("Documentation")]
+render-erds:
+    @echo "📊 Generating entity-relationship diagrams from Pydantic models..."
+    @echo "📁 Source Directory: {{ SRC_DIR }}"
+    @echo "📂 Output Directory: {{ DOCS_DIR }}/assets"
+    @{{ PYTHON }} {{ DOCS_SCRIPTS_DIR }}/render_erds.py
+    @echo "✅ ERD generation complete."
+
+# Generate Markdown documentation using pdoc
+[group("Documentation")]
+render-docs:
+    @echo "📘 Generating Markdown documentation with pdoc..."
+    @{{ PYTHON }} {{ DOCS_SCRIPTS_DIR }}/render_docs.py
+
+# Generate Markdown documentation using pydoc-markdown
+[group("Documentation")]
+render-pydoc:
+    @echo "📘 Generating Markdown documentation with pydoc-markdown..."
+    @pydoc-markdown
+    @echo "✅ Markdown files saved to: {{ DOCS_DIR }}/generated"
+
+# Generate ERD's and Markdown documentation
+[group("Documentation")]
+generate-docs:
+    just render-erds
+    just render-docs
+
+# ------------------------------------------------------------ #
+#                       Script Execution                       #
+# ------------------------------------------------------------ #
+
+# Launch Python REPL with PYTHONPATH including src/
+[group("Execution")]
+repl-src:
+    @echo "🐍 Starting REPL with PYTHONPATH=./src"
+    PYTHONPATH=./src {{ PYTHON }}
 
 # Run the main application script
 [group("Execution")]
@@ -209,31 +332,16 @@ cli:
 data-pipeline:
     {{ PYTHON }} scripts/process_data.py
 
-# -----------------------------------------------
-#  Testing
-# -----------------------------------------------
+# ------------------------------------------------------------ #
+#                    Cleanup And Maintenance                   #
+# ------------------------------------------------------------ #
 
-# Run all tests using pytest
-[group("Testing")]
-test:
-    pytest tests
-
-# Run tests and display a coverage report
-[group("Testing")]
-coverage:
-    coverage run -m pytest
-    coverage report
-
-# -----------------------------------------------
-# Cleanup and Maintenance
-# -----------------------------------------------
-
-# Remove venv and all common Python cache files
+# Remove virtual environment and common Python cache files
 [group("Maintenance")]
 clean:
-    rm -rf .venv __pycache__ .ruff_cache .pytest_cache
+    rm -rf .venv __pycache__ .ruff_cache .pytest_cache .mypy_cache .ipynb_checkpoints
 
-# Rebuild environment from scratch
+# Rebuild the environment from scratch
 [group("Maintenance")]
 rebuild:
     just clean
@@ -251,4 +359,4 @@ check-env:
 [group("Maintenance")]
 purge:
     just clean
-    rm -rf .mypy_cache .ipynb_checkpoints .pytest_cache .ruff_cache
+    rm -rf build/ dist/ *.egg-info/ .coverage coverage_html_report/

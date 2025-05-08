@@ -1,0 +1,9 @@
+# -----------------------------------------------------------------------------
+# File: .sops.yaml
+# Description: Rules for auto-encrypting secrets with Age
+# -----------------------------------------------------------------------------
+
+creation_rules:
+  - path_regex: secrets/.*\.env
+    age:
+      - age1qqe...yourpublickeyfromstep1...

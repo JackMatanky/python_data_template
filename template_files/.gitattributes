@@ -1,32 +1,31 @@
 # -----------------------------------------------------------------------------
-# File: ${PROJECT_PATH}/.gitattributes
+# Filename: ${PROJECT_PATH}/.gitattributes
 # Description: Defines Git behavior for diffing, merging, and cross-platform
 #              compatibility
 # -----------------------------------------------------------------------------
 
-# -----------------------------------------------
-# Jupyter Notebooks
+# --------------------- Jupyter Notebooks -------------------- #
 # NOTE: Use JupyText diffing when not ignored
-# -----------------------------------------------
+
 *.ipynb diff=jupytext
 *.ipynb linguist-documentation
 
-# -----------------------------------------------
-# Line Endings and Text Normalization
+
+# ------------ Line Endings And Text Normalization ----------- #
 # NOTE: Ensures cross-platform consistency
-# -----------------------------------------------
+
 * text=auto eol=lf
 
-# -----------------------------------------------
-# Dependency Lockfiles
+
+# ------------------- Dependency Lockfiles ------------------- #
 # NOTE: Helps reduce merge conflicts
-# -----------------------------------------------
+
 poetry.lock merge=union
 uv.lock merge=union
 
-# -----------------------------------------------
-# Binary and Non-Diffable Files
-# -----------------------------------------------
+
+# --------------- Binary And Non-Diffable Files -------------- #
+
 *.png binary
 *.jpg binary
 *.jpeg binary
@@ -35,3 +34,54 @@ uv.lock merge=union
 *.zip binary
 *.tar.gz binary
 *.whl binary
+
+
+# ------------ Cache And Columnar Storage Formats ------------ #
+# NOTE: Parquet is used for persistent versioned cache (Git),
+#       Feather is used for fast local/session caching.
+
+*.parquet binary
+*.feather binary
+
+
+# ------------ Tabular And Structured Data Formats ----------- #
+
+*.csv text
+*.json text
+*.geojson text
+
+
+# --------------- Database And GIS Data Formats -------------- #
+# NOTE: GDB (ESRI Geodatabase) and GPKG are treated as binary blobs
+
+*.db binary
+*.sqlite binary
+*.gdb binary
+*.gpkg binary
+
+
+# ----------------- ESRI Shapefile Components ---------------- #
+# NOTE: All components of a shapefile must be treated as binary
+
+*.shp binary
+*.shx binary
+*.dbf binary
+*.prj binary
+*.cpg binary
+*.xml binary
+
+
+# ------------------ Geospatial Web Formats ------------------ #
+
+*.kml binary
+*.kmz binary
+
+
+# -------------- Optional Git LFS Configuration -------------- #
+# NOTE: Uncomment these if using Git LFS for large binary formats
+
+*.pdf filter=lfs diff=lfs merge=lfs -text
+*.gdb filter=lfs diff=lfs merge=lfs -text
+*.geojson filter=lfs diff=lfs merge=lfs -text
+*.parquet filter=lfs diff=lfs merge=lfs -text
+*.feather filter=lfs diff=lfs merge=lfs -text
