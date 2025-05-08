@@ -14,3 +14,6 @@ render-python:
 # Run the Bash-based template renderer
 render-bash:
 	bash render_scripts/bash_render.sh
+
+bootstrap name:
+    bash ./scripts/bootstrap-project.sh {{name}}
