@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# File: ${PROJECT_PATH}/justfile
+# File: geo-data/justfile
 # GitHub: https://github.com/casey/just
 # Docs: https://just.systems/man/en
 # Description: Task runner for project setup, Jupytext sync, linting, testing,
@@ -13,14 +13,14 @@ set windows-shell := ["powershell", "-Command"]
 # ------------------------------------------------------------ #
 #                Environment Variables And Paths               #
 # ------------------------------------------------------------ #
-# ------------------ OS and Shell Detection ------------------ #
 
+# ------------------ OS and Shell Detection ------------------ #
 OS := os_family()
 SHELL_NAME := if OS == "windows" { "powershell" } else { `basename "$SHELL"` }
 TERMINAL := if OS == "windows" { "powershell" } else { `ps -o comm= -p $(ps -o ppid= -p $(ps -o ppid= -p $$)) | xargs basename` }
 
-# ----------------------- Project Paths ---------------------- #
 
+# ----------------------- Project Paths ---------------------- #
 PROJECT_DIR := invocation_directory()
 VENV_DIR := PROJECT_DIR / ".venv"
 DATA_DIR := PROJECT_DIR / "data"
@@ -30,8 +30,11 @@ DOCS_SCRIPTS_DIR := DOCS_DIR / "scripts"
 NOTEBOOK_DIR := PROJECT_DIR / "notebooks"
 IPYNB_PATH := join(NOTEBOOK_DIR, "**/*.ipynb")
 
-# --------- Python Virtual Environment Configuration --------- #
+# SCRIPT_DIR := PROJECT_DIR / "_scripts"
+# PY_PATH := SCRIPT_DIR / "**/*.py"
 
+
+# --------- Python Virtual Environment Configuration --------- #
 PYTHON_DIR := join(".venv", if OS == "windows" { "Scripts" } else { "bin" })
 PYTHON := join(PYTHON_DIR, if OS == "windows" { "python.exe" } else { "python3" })
 VENV_ACTIVATE_PATH := if TERMINAL == "nu" { join(PYTHON_DIR, "activate.nu") } else if TERMINAL == "fish" { join(PYTHON_DIR, "activate.fish") } else { join(PYTHON_DIR, "activate") }
@@ -84,8 +87,21 @@ create_venv:
 
 # Create a Python virtual environment if it doesn't exist
 [group("Virtual Environment")]
-venv:
+u-venv:
     [ -d .venv ] || just create_venv
+
+# Initialize virtual environment using direnv + layout_uv
+[group("Virtual Environment")]
+venv:
+    @echo "🔧 Initializing virtual environment via direnv + layout_uv..."
+    if [ ! -f .envrc ]; then
+        echo "⚙️  Creating .envrc with layout_uv..."
+        echo 'layout_uv' > .envrc
+    else
+        echo "📄 Found existing .envrc"
+    fi
+    @direnv allow
+    @echo "✅ direnv allowed — .venv will be created automatically if missing"
 
 # Print the activation path for the current shell
 [group("Virtual Environment")]
@@ -225,8 +241,8 @@ typecheck-pylyzer:
 # ------------------------------------------------------------ #
 #                     Jupytext Integration                     #
 # ------------------------------------------------------------ #
-# Jupytext pairing format
 
+# Jupytext pairing format
 JUPYTEXT_FORMAT := "--set-formats ipynb,/_scripts//py:percent"
 
 # Pair .ipynb notebooks with .py scripts
